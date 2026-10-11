@@ -9,7 +9,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Enable compiler warnings to catch issues early.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra)
 endif()
@@ -39,3 +38,6 @@ target_link_libraries(calibrate PRIVATE
     opencv_geometry
 )
 target_include_directories(calibrate PRIVATE ${OpenCV_INCLUDE_DIRS})
+
+
+
