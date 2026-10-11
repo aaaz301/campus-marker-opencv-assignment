@@ -65,3 +65,13 @@ target_link_libraries(marker_app PRIVATE mark_offline)
 
 add_executable(marker_display_probe app/display_probe.cpp)
 target_link_libraries(marker_display_probe PRIVATE ${OpenCV_LIBS})
+
+add_executable(
+    calibration_tool
+    tools/calibration/calibration_main.cpp
+    tools/calibration/calibration_config.cpp
+    tools/calibration/calibration_video.cpp
+    tools/calibration/calibration_detection.cpp
+    tools/calibration/calibration_result.cpp
+)
+target_link_libraries(calibration_tool PRIVATE ${OpenCV_LIBS})

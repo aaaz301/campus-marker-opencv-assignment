@@ -71,6 +71,14 @@ ffplay new-runs/quickstart-verification-01/overlay.mp4
 ffmpeg -i new-runs/quickstart-verification-01/overlay.mp4 -c:v libx264 new-runs/quickstart-verification-01/overlay_h264.mp4
 ```
 
+## 相机标定
+
+已完成相机标定，内参矩阵与畸变系数见 `config/calibration.yaml`。
+
+标定工具：`tools/calibration/`（`calibration_tool`），用法见该目录下 README.md。标定板为 7x7 圆点阵（间距 0.03m），49 帧标定，重投影误差 0.013px。
+
+详细标定报告见 submissions/REPORT.md 第 6 节。
+
 ## 路径与已知限制
 
 配置模型路径相对 YAML 所在目录解析；命令中的视频和输出路径按当前工作目录解析。库使用者包含 `<mark/detector.hpp>`，内部模块见 `lib/`。
