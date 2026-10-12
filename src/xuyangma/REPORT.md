@@ -1,164 +1,164 @@
-# Campus Marker Recognition Report
+# 校内赛标志物识别报告
 
-## 1. Task Overview
+## 1. 任务概述
 
-The goal of this project is to detect the campus competition marker from continuous video frames using only traditional computer vision methods and OpenCV.
+本项目的目标是仅使用传统计算机视觉方法和 OpenCV，对连续视频帧中的校内赛标志物进行识别。
 
-For each frame, the program determines whether the marker is present.
+对于每一帧，程序首先判断标志物是否存在。
 
-When the marker is detected, the program outputs:
+当检测到标志物时，程序输出：
 
-- the marker outer region;
-- four outer corner points;
-- the corner order `LT`, `RT`, `RB`, `LB`;
-- a visualization of the detection result.
+- 标志物外部区域；
+- 四个外角点；
+- 固定角点顺序 `LT`、`RT`、`RB`、`LB`；
+- 检测结果可视化。
 
-When no reliable marker is found, the program outputs:
+当没有找到可靠标志物时，程序输出：
 
 ```text
 NOT DETECTED
 ```
 
-The program does not indefinitely reuse the previous frame result after the marker disappears.
+标志物离开画面后，程序不会无限复用上一帧结果。
 
-In addition to the required detection task, camera calibration and marker pose estimation are also implemented.
+在必做的检测任务之外，本项目还完成了相机标定与标志物位姿估计。
 
 ---
 
-## 2. Marker Visual Structure
+## 2. 标志物视觉结构
 
-The target is a planar marker with an approximately square dark outer panel and a fixed bright internal pattern.
+目标是一个平面标志物，外部近似为深色正方形面板，内部具有固定的亮色图案。
 
-The marker drawing shows an outer size of approximately:
+标志物图纸显示其外部尺寸约为：
 
 ```text
 80 x 80
 ```
 
-The most useful feature is not only the square outer boundary, but the asymmetric internal bright structure.
+真正具有区分度的特征不仅是外部方形边界，更重要的是内部不对称的亮色结构。
 
-Three locations contain similar L-shaped bright patterns:
+其中三个位置具有相似的 L 形亮色图案：
 
-- upper-left;
-- lower-left;
-- lower-right.
+- 左上；
+- 左下；
+- 右下。
 
-The upper-right region contains a different multi-part bright pattern.
+右上区域则是另一种由多个部分组成的特殊亮色图案。
 
-Therefore, the marker can be identified using both:
+因此，标志物识别可以同时利用：
 
-1. local bright-component shape;
-2. global geometric layout.
+1. 局部亮色连通区域的形状；
+2. 全局几何布局。
 
-This asymmetric structure also provides orientation information and helps distinguish the marker from ordinary bright rectangular objects in the scene.
+这种不对称结构还能提供方向信息，有助于将目标与场景中普通的亮色矩形物体区分开。
 
 ---
 
-## 3. Main Detection Strategy
+## 3. 主检测策略
 
-The final implementation uses a coarse-to-fine detection pipeline.
+最终实现采用由粗到细的检测流程：
 
 ```text
-Input frame
+输入帧
     |
     v
-HSV bright-region segmentation
+HSV 亮区分割
     |
     v
-Bright contour extraction
+亮色轮廓提取
     |
     v
-L-shape candidate filtering
+L 形候选筛选
     |
     v
-Three-L geometric-layout search
+三 L 几何布局搜索
     |
     v
-Upper-right special-pattern verification
+右上特殊图案验证
     |
     v
-Coarse marker geometry estimation
+粗略标志物几何估计
     |
     v
-Perspective-normalized marker verification
+透视归一化验证
     |
     v
-Outer-edge refinement
+外边缘精修
     |
     v
-Temporal consistency
+时序一致性处理
     |
     v
 DETECTED / NOT DETECTED
 ```
 
-The main design idea is:
+核心思路是：
 
-> First generate relatively permissive candidates, then use marker-specific geometry to verify them.
+> 先以较宽松的条件产生候选，再使用标志物自身特有的几何结构完成验证。
 
-Marker identity and marker boundary localization are treated as two different problems.
+在设计上，将“确认目标身份”和“定位目标外边界”视为两个不同的问题。
 
-The internal bright pattern is mainly used to determine whether an object is the required marker.
+内部亮色图案主要负责判断当前物体是否为目标标志物。
 
-The outer dark boundary is then refined separately to obtain more accurate corner positions.
-
----
-
-## 4. Bright Region Segmentation
-
-The original image is provided in BGR format.
-
-It is first converted to HSV.
-
-The marker light regions generally have:
-
-- high brightness;
-- relatively low saturation.
-
-The detector therefore uses both the Saturation channel and the Value channel.
-
-The Value channel is thresholded using Otsu thresholding together with upper and lower limits.
-
-This avoids depending entirely on one fixed brightness threshold.
-
-The Saturation channel is used to suppress strongly colored regions.
-
-The two binary masks are combined to obtain a bright-region mask.
-
-A small `3 x 3` morphological kernel is then used for:
-
-- morphological opening;
-- morphological closing.
-
-Opening helps remove isolated small noise.
-
-Closing helps reconnect small gaps inside valid bright components.
+确认目标之后，再单独利用外部深色边界对角点进行精修，以获得更准确的四角位置。
 
 ---
 
-## 5. Bright Component Extraction
+## 4. 亮区分割
 
-Contours are extracted from the bright binary mask using OpenCV `findContours`.
+原始图像以 BGR 格式输入。
 
-The detector rejects components that are clearly unreasonable according to:
+首先将图像转换到 HSV 颜色空间。
 
-- area relative to total image area;
-- minimum width and height;
-- extreme aspect ratio.
+标志物中的亮色区域通常具有以下特征：
 
-This stage is intentionally permissive.
+- 亮度较高；
+- 饱和度相对较低。
 
-Its purpose is candidate generation rather than final marker recognition.
+因此，检测器同时使用 Saturation（饱和度）通道和 Value（亮度）通道。
 
-A component that passes this stage is only considered a possible marker feature.
+Value 通道使用 Otsu 自动阈值，并结合上下限进行约束。
+
+这样可以避免算法完全依赖某一个固定亮度阈值。
+
+Saturation 通道用于抑制颜色过于鲜艳的区域。
+
+两个二值掩膜组合后得到最终亮区掩膜。
+
+之后使用较小的 `3 x 3` 形态学核进行：
+
+- 开运算；
+- 闭运算。
+
+开运算用于去除孤立的小噪声。
+
+闭运算用于连接有效亮色区域内部的小缝隙。
 
 ---
 
-## 6. L-Shape Model
+## 5. 亮色连通区域提取
 
-The marker contains three similar L-shaped bright components.
+在亮区二值图上使用 OpenCV `findContours` 提取轮廓。
 
-The marker drawing provides useful geometric dimensions, including approximately:
+对于明显不合理的连通区域，根据以下条件进行初步剔除：
+
+- 面积相对于整幅图像的比例；
+- 最小宽度和最小高度；
+- 过于极端的长宽比。
+
+这一阶段故意保持较宽松。
+
+它的任务是产生候选，而不是直接完成最终标志物识别。
+
+通过这一阶段的区域，只能被视为“可能属于标志物的特征”。
+
+---
+
+## 6. L 形模板
+
+标志物内部包含三个相似的 L 形亮色区域。
+
+标志物图纸中给出了若干有用的几何尺寸，约为：
 
 ```text
 30
@@ -166,9 +166,9 @@ The marker drawing provides useful geometric dimensions, including approximately
 8
 ```
 
-These dimensions define the basic L structure.
+这些尺寸可以用来构建基础 L 形结构。
 
-A normalized L-shape polygon is constructed using:
+归一化后的 L 形多边形使用以下点描述：
 
 ```text
 (0,0)
@@ -179,74 +179,76 @@ A normalized L-shape polygon is constructed using:
 (0,30)
 ```
 
-Each candidate contour is compared with this L model using OpenCV:
+每个候选轮廓都使用 OpenCV 的：
 
 ```text
 matchShapes
 ```
 
-The detector also checks the foreground fill ratio inside the component bounding box.
+与这个 L 形模板比较。
 
-The expected fill ratio is derived from the approximate geometry of the two L arms.
+同时，检测器还会检查候选连通区域在其包围框中的前景填充比例。
 
-Combining contour-shape similarity and fill ratio helps reject:
+期望填充比例由 L 形两条边臂的大致几何关系推导得到。
 
-- ordinary bright squares;
-- long bright bars;
-- unrelated robot structures;
-- small reflections.
+结合轮廓形状相似度和填充比例，可以进一步排除：
 
----
-
-## 7. Three-L Geometric Layout
-
-A valid marker should contain three L-shaped components in approximately the following marker positions:
-
-```text
-upper-left        upper-right special pattern
-
-
-lower-left        lower-right
-```
-
-The three L-shaped components correspond to:
-
-```text
-upper-left
-lower-left
-lower-right
-```
-
-The detector searches combinations of L candidates and checks their geometric consistency.
-
-The following properties are considered:
-
-- distance between components;
-- horizontal and vertical scale;
-- angle between the two main directions;
-- area similarity between the three L components.
-
-The three components should form a structure similar to two approximately perpendicular marker axes.
-
-Candidates with extreme scale difference or strongly inconsistent geometry are rejected.
+- 普通亮色方块；
+- 细长亮条；
+- 与目标无关的机器人结构；
+- 小面积反光。
 
 ---
 
-## 8. Coarse Marker Coordinate Model
+## 7. 三 L 几何布局
 
-After the three L-shaped components are identified, their centers are used to estimate a coarse marker coordinate model.
-
-The implementation assigns approximate normalized marker coordinates:
+一个有效标志物应当在大致如下的位置关系中包含三个 L 形区域：
 
 ```text
-upper-left L center   = (20,20)
-lower-left L center   = (20,60)
-lower-right L center  = (60,60)
+左上                右上特殊图案
+
+
+左下                右下
 ```
 
-These three correspondences are used to estimate an affine transformation from marker coordinates to image coordinates.
+其中三个 L 形区域分别对应：
 
-The marker outer square is modeled using:
+```text
+左上
+左下
+右下
+```
+
+检测器会搜索多个 L 候选的组合，并检查它们之间的几何一致性。
+
+主要考虑以下属性：
+
+- 各连通区域之间的距离；
+- 水平与垂直方向上的尺度；
+- 两个主方向之间的夹角；
+- 三个 L 形区域之间的面积相似度。
+
+这三个连通区域应当构成类似两条近似互相垂直的标志物坐标轴。
+
+如果候选之间的尺度差异过大，或者整体几何关系明显不一致，则直接剔除。
+
+---
+
+## 8. 粗略标志物坐标模型
+
+当三个 L 形区域被确认后，使用它们的中心点估计一个粗略的标志物坐标模型。
+
+实现中给三个特征中心分配以下近似归一化坐标：
+
+```text
+左上 L 中心   = (20,20)
+左下 L 中心   = (20,60)
+右下 L 中心   = (60,60)
+```
+
+利用这三个对应关系，估计从标志物坐标到图像坐标的仿射变换。
+
+标志物外部正方形使用如下模型：
 
 ```text
 LT = (0,0)
@@ -255,104 +257,104 @@ RB = (80,80)
 LB = (0,80)
 ```
 
-The affine transformation projects these four model corners into the image and produces a coarse marker quadrilateral.
+通过仿射变换将这四个模型角点投影到图像中，即可得到一个粗略的标志物四边形。
 
-This coarse result is not automatically accepted as the final detection.
+这个粗略结果不会直接作为最终检测结果。
 
-It is verified using the marker's upper-right pattern and the complete normalized marker structure.
-
----
-
-## 9. Upper-Right Special-Pattern Verification
-
-The upper-right marker region is intentionally different from the other three corners.
-
-Instead of one L-shaped component, it contains several separated bright components.
-
-This region is useful because it reduces orientation ambiguity.
-
-After the three L components define the coarse marker geometry, the expected upper-right area is projected into the image.
-
-The detector checks:
-
-- total bright-pixel ratio;
-- number of significant connected components;
-- approximate distribution of bright regions.
-
-A candidate is rejected if the predicted upper-right area does not contain a reasonable special-pattern structure.
-
-This step is important for rejecting objects that accidentally contain three L-like bright regions.
+后续还会利用右上特殊图案以及完整的归一化标志物结构继续验证。
 
 ---
 
-## 10. Perspective-Normalized Verification
+## 9. 右上特殊图案验证
 
-The coarse marker quadrilateral is transformed to a fixed square image using a perspective transformation.
+标志物右上区域与另外三个角不同。
 
-OpenCV `getPerspectiveTransform` and `warpPerspective` are used.
+这里不是单个 L 形区域，而是由多个彼此分离的亮色区域构成。
 
-The normalized marker image has a fixed size:
+这一结构可以降低方向歧义。
+
+当三个 L 形区域确定出粗略标志物几何关系后，将预期的右上区域投影回图像。
+
+检测器会检查：
+
+- 亮色像素总占比；
+- 显著连通区域数量；
+- 亮色区域的大致分布。
+
+如果预测出的右上区域中不存在合理的特殊图案结构，则拒绝该候选。
+
+这一过程对于排除“恰好出现三个类似 L 形亮区”的非目标物体非常重要。
+
+---
+
+## 10. 透视归一化验证
+
+使用透视变换将粗略标志物四边形转换到固定大小的正方形图像中。
+
+实现中使用 OpenCV 的 `getPerspectiveTransform` 和 `warpPerspective`。
+
+归一化后的标志物图像大小固定为：
 
 ```text
 320 x 320
 ```
 
-After normalization, the detector checks the complete marker structure again.
+归一化之后，再次检查完整标志物结构。
 
-Expected regions include:
+预期区域包括：
 
 ```text
-upper-left  -> L-shaped pattern
-upper-right -> special multi-part pattern
-lower-right -> L-shaped pattern
-lower-left  -> L-shaped pattern
+左上  -> L 形图案
+右上  -> 特殊多部分图案
+右下  -> L 形图案
+左下  -> L 形图案
 ```
 
-The normalized view makes verification less sensitive to:
+归一化视图可以降低以下因素带来的影响：
 
-- image position;
-- apparent scale;
-- moderate perspective distortion.
+- 标志物在图像中的位置；
+- 表观尺度变化；
+- 中等程度的透视变形。
 
-This second verification stage prevents acceptance based only on several unrelated bright objects appearing close to each other.
+这一第二阶段验证可以避免仅仅因为几个互不相关的亮色物体恰好靠得较近，就被错误接受为标志物。
 
 ---
 
-## 11. Outer Boundary Refinement
+## 11. 外边界精修
 
-The internal bright components are suitable for recognizing the marker, but the required output corners should correspond to the actual outer marker boundary.
+内部亮色区域适合用于确认标志物身份，但作业要求输出的角点应尽可能对应真实的外部标志物边界。
 
-Therefore, the coarse quadrilateral is refined using local image gradients.
+因此，在粗略四边形基础上继续利用局部图像梯度精修外边缘。
 
-The image is converted to grayscale and smoothed using Gaussian blur.
+首先将图像转换为灰度图，并进行 Gaussian 模糊。
 
-Sobel operators are then used to calculate:
-
-```text
-horizontal image gradient
-vertical image gradient
-```
-
-For each predicted marker edge:
+之后使用 Sobel 算子计算：
 
 ```text
-top
-right
-bottom
-left
+水平方向图像梯度
+垂直方向图像梯度
 ```
 
-multiple sample locations are selected along the predicted edge.
+对于预测出的每一条标志物边：
 
-For each sample, the detector searches a narrow region around the predicted position.
+```text
+上
+右
+下
+左
+```
 
-The strongest gradient that is consistent with the expected edge normal direction is selected.
+沿预测边选取多个采样位置。
 
-The selected points are then fitted with OpenCV `fitLine`.
+对于每一个采样点，在预测位置附近的小范围区域内搜索。
 
-This produces four refined outer lines.
+选择与预期边缘法向方向一致、且梯度最强的位置。
 
-Their intersections give the final:
+随后使用 OpenCV `fitLine` 对这些点进行直线拟合。
+
+这样得到四条经过精修的外边界直线。
+
+四条直线的交点即得到最终：
 
 ```text
 LT
@@ -361,17 +363,17 @@ RB
 LB
 ```
 
-corner coordinates.
+四个角点。
 
-If the refined result is geometrically unreasonable or moves too far away from the coarse prediction, the detector rejects the refinement and falls back to the coarse marker quadrilateral.
+如果精修结果在几何上明显不合理，或者相对于粗略预测移动过远，则拒绝本次精修，退回粗略四边形。
 
-This prevents unstable edge measurements from destroying an otherwise valid detection.
+这样可以防止不稳定的边缘测量破坏原本已经合理的检测结果。
 
 ---
 
-## 12. Corner Ordering
+## 12. 角点排序
 
-The final marker corners are maintained in the following order:
+最终四个角点始终保持以下顺序：
 
 ```text
 LT
@@ -380,262 +382,264 @@ RB
 LB
 ```
 
-where:
+对应：
 
 ```text
-LT = left-top
-RT = right-top
-RB = right-bottom
-LB = left-bottom
+LT = 左上
+RT = 右上
+RB = 右下
+LB = 左下
 ```
 
-This ordering is important for both visualization and pose estimation.
+这个固定顺序不仅用于可视化，也用于后续位姿估计。
 
-The same corner order is used consistently by the PnP marker model.
+PnP 使用的标志物三维模型与图像角点保持完全相同的顺序。
 
 ---
 
-## 13. Temporal Consistency
+## 13. 时序一致性
 
-The task processes continuous video frames rather than isolated images.
+本任务处理的是连续视频帧，而不是彼此独立的单张图片。
 
-A real marker normally moves continuously between adjacent frames.
+真实标志物在相邻帧之间通常具有连续运动特性。
 
-The detector therefore checks temporal consistency between the current valid detection and the previous valid detection.
+因此，检测器会检查当前有效检测与上一帧有效检测之间的时序一致性。
 
-Two main measurements are used.
+主要使用两个量。
 
-### 13.1 Area change
+### 13.1 面积变化
 
-The current marker area is compared with the previous marker area.
+将当前标志物面积与上一帧面积进行比较。
 
-A very large instantaneous increase or decrease is considered suspicious.
+如果单帧之间出现过大的瞬时面积增大或减小，则认为结果可疑。
 
-### 13.2 Center displacement
+### 13.2 中心点位移
 
-The center displacement between two frames is calculated.
+计算相邻两帧标志物中心点的位移。
 
-Instead of using only a fixed pixel threshold, the displacement is normalized using the previous marker scale.
+算法不只使用固定像素阈值，而是使用上一帧标志物尺度对位移进行归一化。
 
-This makes the temporal rule more appropriate for markers appearing at different distances from the camera.
+因此，该规则能够更合理地适应远近不同的标志物。
 
-If the current detection is valid and temporally consistent, corner smoothing is applied.
+如果当前检测有效且与上一帧满足时序一致性，则进行角点平滑。
 
-The smoothing uses:
+平滑权重为：
 
 ```text
-60% previous position
-40% current position
+60% 上一帧位置
+40% 当前帧位置
 ```
 
-This reduces visible frame-to-frame jitter.
+这样可以减小可视化时的逐帧抖动。
 
-However, the previous result is not used indefinitely.
+但是，上一帧结果不会被无限保留。
 
-If the current frame has no reliable marker detection, the program outputs:
+如果当前帧没有可靠的标志物检测，程序会立即输出：
 
 ```text
 NOT DETECTED
 ```
 
-and resets the previous-frame state.
+并重置上一帧状态。
 
 ---
 
-## 14. Detection Development Process
+## 14. 检测方案的开发过程
 
-Several approaches were tested during development.
+开发过程中测试了多种方案。
 
-### 14.1 First approach: generic contour and rectangle detection
+### 14.1 第一种方案：通用轮廓与矩形检测
 
-The first approach was approximately:
+最初的流程大致为：
 
 ```text
-grayscale
--> Gaussian blur
+灰度化
+-> Gaussian 模糊
 -> Canny
--> morphology
--> contour extraction
--> polygon approximation / minAreaRect
+-> 形态学处理
+-> 轮廓提取
+-> 多边形逼近 / minAreaRect
 ```
 
-This method could detect many geometric objects.
+这种方法可以检测到大量几何物体。
 
-However, it was too general.
+但它过于通用。
 
-Objects such as wheels and unrelated background structures could also generate strong contours.
+车轮以及背景中无关结构同样可能产生强轮廓。
 
-Using `minAreaRect` could force a rectangular box around objects that were not actually the marker.
+使用 `minAreaRect` 时，还可能强行在并非标志物的物体外围拟合出矩形框。
 
-Therefore:
+因此得到结论：
 
-> rectangular geometry alone was not sufficiently marker-specific.
-
----
-
-### 14.2 Second approach: grouping bright regions
-
-A later version used the marker's bright internal regions.
-
-Nearby bright components were grouped and an outer quadrilateral was estimated from their combined geometry.
-
-This improved marker recognition.
-
-However, nearby robot support structures could also appear bright.
-
-When these unrelated regions were included in the same group, the estimated outer marker corners moved away from the real marker boundary.
-
-Therefore:
-
-> all nearby bright pixels should not directly define the outer marker boundary.
+> 仅依赖矩形几何形状，缺少足够的标志物特异性。
 
 ---
 
-### 14.3 Final approach
+### 14.2 第二种方案：亮区分组
 
-The final method separates:
+后续版本开始利用标志物内部的亮色区域。
+
+算法将相邻亮色区域组合起来，并根据它们的整体几何关系估计外部四边形。
+
+这一方法提升了标志物识别效果。
+
+但机器人附近的支撑结构也可能呈现为亮色。
+
+当这些无关区域被错误地包含进同一组时，估计出的外部角点就会偏离真实标志物边界。
+
+因此进一步得到结论：
+
+> 不能直接使用所有相邻亮色像素来确定标志物外边界。
+
+---
+
+### 14.3 最终方案
+
+最终方法明确将：
 
 ```text
-marker recognition
+标志物身份识别
 ```
 
-from:
+与：
 
 ```text
-outer boundary localization
+外边界定位
 ```
 
-The structured internal marker pattern is used for identity verification.
+分开处理。
 
-The actual outer edge is then refined locally using image gradients.
+先利用结构化的内部图案确认目标身份。
 
-This design provides much better rejection of unrelated objects and more accurate outer corners.
+再利用局部图像梯度对真实外边缘进行精修。
 
----
-
-## 15. Parameter Design
-
-The implementation attempts to avoid relying only on arbitrary fixed pixel values.
-
-### 15.1 Brightness threshold
-
-The brightness threshold uses Otsu thresholding together with reasonable upper and lower bounds.
-
-This gives some adaptation to changing illumination.
-
-### 15.2 Candidate component area
-
-Component areas are compared with the total image area.
-
-Therefore, the filtering is less dependent on one specific resolution.
-
-### 15.3 L-shape geometry
-
-The L model is based on the relative dimensions shown in the marker drawing instead of one exact pixel template.
-
-### 15.4 Marker geometry
-
-The internal feature locations and outer boundary are represented in a normalized `80 x 80` marker coordinate system.
-
-### 15.5 Outer-edge search region
-
-The outer-edge refinement search range is related to the predicted marker edge length.
-
-This allows larger targets to use a slightly larger search region.
-
-### 15.6 Temporal displacement
-
-Frame-to-frame center displacement is normalized by marker size.
-
-This avoids applying the same absolute pixel-motion limit to both near and distant markers.
+相比前面的方案，这一设计能够更有效地拒绝无关物体，并得到更加准确的四个外角点。
 
 ---
 
-## 16. Known Limitations
+## 15. 参数设计
 
-The detector still has several practical limitations.
+实现过程中尽量避免只依赖任意设定的固定像素值。
 
-### Small target size
+### 15.1 亮度阈值
 
-When the marker occupies very few pixels, the L-shaped components lose their geometric detail.
+亮度阈值采用 Otsu 自动阈值，同时结合合理的上下限。
 
-This can reduce shape-matching accuracy.
+这样能够对光照变化提供一定程度的自适应能力。
 
-### Motion blur
+### 15.2 候选区域面积
 
-Strong motion blur may merge or break bright marker components.
+连通区域面积按照整幅图像面积的比例进行判断。
 
-This can cause contour geometry to become unreliable.
+因此，筛选过程不会过度依赖某一个固定分辨率。
 
-### Strong overexposure
+### 15.3 L 形几何
 
-Severe overexposure can enlarge the white regions and change their apparent shape.
+L 形模板依据标志物图纸中的相对尺寸建立，而不是依赖某一个固定像素模板。
 
-### Severe occlusion
+### 15.4 标志物几何
 
-If multiple internal marker regions are blocked, the three-L layout or upper-right verification may fail.
+内部特征位置以及外部边界均表示在归一化的 `80 x 80` 标志物坐标系中。
 
-### Very weak outer-edge contrast
+### 15.5 外边缘搜索范围
 
-The black marker boundary may have low contrast against some dark backgrounds.
+外边缘精修时的搜索范围与预测标志物边长相关。
 
-In this situation, edge refinement may fail.
+因此，当目标在图像中更大时，可以使用略大的搜索范围。
 
-The program then keeps the coarse geometrically estimated quadrilateral instead of using an unreliable refined result.
+### 15.6 时序位移
+
+逐帧中心点位移按照标志物尺度进行归一化。
+
+这样可避免对远处和近处标志物统一使用同一个绝对像素位移限制。
 
 ---
 
-# Camera Calibration
+## 16. 已知限制
 
-## 17. Calibration Target
+当前检测器仍然存在一些实际限制。
 
-Camera calibration is performed using the provided calibration video:
+### 目标过小
+
+当标志物只占据很少像素时，L 形区域会失去足够的几何细节。
+
+这会降低形状匹配的可靠性。
+
+### 运动模糊
+
+较强的运动模糊可能使亮色区域彼此粘连或断裂。
+
+这种情况下，轮廓几何关系会变得不可靠。
+
+### 严重过曝
+
+严重过曝会扩大白色区域，并改变其表观形状。
+
+### 严重遮挡
+
+如果多个内部特征同时被遮挡，三 L 布局或右上特殊图案验证可能失败。
+
+### 外边缘对比度过低
+
+当黑色标志物边界与深色背景之间的对比度很低时，外边缘精修可能失败。
+
+这种情况下，程序会保留由几何关系估计得到的粗略四边形，而不会使用不可靠的精修结果。
+
+---
+
+# 相机标定
+
+## 17. 标定板
+
+相机标定使用仓库提供的视频：
 
 ```text
 data/raw/calibration_video.avi
 ```
 
-The target is a:
+标定板类型为：
 
 ```text
-7 x 7 symmetric circles grid
+7 x 7 对称圆点阵列
 ```
 
-The center-to-center physical spacing between adjacent circle centers is:
+相邻圆心之间的实际距离为：
 
 ```text
 0.03 m
 ```
 
-The calibration image resolution is:
+标定视频图像分辨率为：
 
 ```text
 1440 x 1080
 ```
 
-OpenCV `findCirclesGrid` is used with the symmetric-grid model.
+程序使用 OpenCV `findCirclesGrid`，并采用对称圆点阵列模型。
 
-The object points are defined on the planar calibration board as:
+平面标定板上的物点定义为：
 
 ```text
 (x * 0.03, y * 0.03, 0)
 ```
 
-where `x` and `y` are the grid indices.
+其中 `x` 和 `y` 为网格索引。
 
 ---
 
-## 18. Calibration Frame Selection
+## 18. 标定帧选择
 
-The implementation samples one video frame every:
+程序每隔：
 
 ```text
-30 frames
+30 帧
 ```
 
-A maximum of 30 successful calibration frames is used.
+采样一次。
 
-The final calibration used 30 frames:
+最多使用 30 个成功检测到标定板的帧。
+
+最终标定共使用 30 帧：
 
 ```text
 0
@@ -672,9 +676,9 @@ The final calibration used 30 frames:
 
 ---
 
-## 19. Camera Intrinsic Matrix
+## 19. 相机内参矩阵
 
-The calibrated camera intrinsic matrix is:
+标定得到的相机内参矩阵为：
 
 ```text
 [ 2410.2783150179343,    0.0,                 705.9996456514790
@@ -682,7 +686,7 @@ The calibrated camera intrinsic matrix is:
      0.0,                 0.0,                   1.0               ]
 ```
 
-The corresponding intrinsic parameters are approximately:
+对应的内参约为：
 
 ```text
 fx = 2410.2783150179343
@@ -691,17 +695,17 @@ cx = 705.9996456514790
 cy = 560.6478366522402
 ```
 
-where:
+其中：
 
-- `fx` is the focal length in the image x direction;
-- `fy` is the focal length in the image y direction;
-- `cx` and `cy` are the principal-point coordinates.
+- `fx` 为图像 x 方向焦距；
+- `fy` 为图像 y 方向焦距；
+- `cx`、`cy` 为主点坐标。
 
 ---
 
-## 20. Distortion Coefficients
+## 20. 畸变系数
 
-The calibrated distortion coefficients are:
+标定得到的畸变系数为：
 
 ```text
 [-0.06434498006241739,
@@ -711,7 +715,7 @@ The calibrated distortion coefficients are:
   0.8409139831464698]
 ```
 
-Using OpenCV's standard five-coefficient model:
+按照 OpenCV 标准五参数畸变模型：
 
 ```text
 k1 = -0.06434498006241739
@@ -721,12 +725,12 @@ p2 = -0.0011031832077103248
 k3 =  0.8409139831464698
 ```
 
-where:
+其中：
 
-- `k1`, `k2`, `k3` are radial distortion coefficients;
-- `p1`, `p2` are tangential distortion coefficients.
+- `k1`、`k2`、`k3` 为径向畸变系数；
+- `p1`、`p2` 为切向畸变系数。
 
-The calibration parameters are saved to:
+标定参数保存在：
 
 ```text
 src/xuyangma/calibration.yaml
@@ -734,62 +738,62 @@ src/xuyangma/calibration.yaml
 
 ---
 
-## 21. Calibration Accuracy
+## 21. 标定精度
 
-The final calibration RMS error is:
+最终标定 RMS 误差为：
 
 ```text
 0.06222580695747921
 ```
 
-The mean reprojection error is:
+平均重投影误差为：
 
 ```text
 0.06089088451195195 px
 ```
 
-The reprojection error measures the difference between:
+重投影误差衡量的是以下两者之间的差异：
 
 ```text
-detected calibration image points
+在标定图像中实际检测到的特征点
 ```
 
-and:
+与：
 
 ```text
-3D calibration points projected back into the image using the estimated camera model
+使用估计出的相机模型将三维标定点重新投影到图像后的位置
 ```
 
-The low reprojection error shows that the selected calibration observations are geometrically consistent with the estimated camera parameters.
+较低的重投影误差说明，所选标定观测与估计得到的相机参数在几何上具有较好一致性。
 
 ---
 
-# Marker Pose Estimation
+# 标志物位姿估计
 
-## 22. Marker Physical Model
+## 22. 标志物物理模型
 
-The marker drawing gives an outer dimension of:
+标志物图纸给出的外部尺寸为：
 
 ```text
 80
 ```
 
-For the current pose experiment, this dimension is treated as:
+在当前位姿估计实验中，将该尺寸按以下实际长度处理：
 
 ```text
 80 mm = 0.08 m
 ```
 
-Therefore:
+因此：
 
 ```text
-marker size = 0.08 m
-half size   = 0.04 m
+标志物边长 = 0.08 m
+半边长     = 0.04 m
 ```
 
-The marker coordinate-system origin is placed at the center of the marker.
+标志物坐标系原点设置在标志物中心。
 
-The four 3D marker corners are defined as:
+四个三维角点定义为：
 
 ```text
 LT = (-0.04, +0.04, 0)
@@ -798,46 +802,46 @@ RB = (+0.04, -0.04, 0)
 LB = (-0.04, -0.04, 0)
 ```
 
-All distances are represented in meters.
+所有距离均使用米作为单位。
 
 ---
 
-## 23. Coordinate Systems
+## 23. 坐标系定义
 
-### Marker coordinate system
+### 标志物坐标系
 
-The marker coordinate system is defined as:
-
-```text
-origin = center of marker
-+X = marker right
-+Y = marker top
-+Z = normal to the marker plane
-```
-
-The axes form a right-handed coordinate system.
-
-For a front-facing marker, the positive marker Z direction points approximately outward from the marker surface toward the camera.
-
-### OpenCV camera coordinate system
-
-The OpenCV camera coordinate system is:
+定义为：
 
 ```text
-+X = camera/image right
-+Y = camera/image down
-+Z = forward from the camera
+原点 = 标志物中心
++X = 标志物右方
++Y = 标志物上方
++Z = 标志物平面法向
 ```
 
-The translation vector returned by PnP therefore describes the marker origin in camera coordinates.
+三个轴构成右手坐标系。
 
-Because the marker size and calibration spacing are both expressed in meters, the translation vector is also expressed in meters.
+当标志物正对相机时，标志物正 Z 方向大致从标志物表面指向相机。
+
+### OpenCV 相机坐标系
+
+OpenCV 相机坐标系定义为：
+
+```text
++X = 相机 / 图像右方
++Y = 相机 / 图像下方
++Z = 从相机向前
+```
+
+因此，PnP 返回的平移向量表示标志物原点在相机坐标系中的位置。
+
+由于标志物尺寸和标定板间距均以米为单位，因此平移向量的单位也是米。
 
 ---
 
-## 24. PnP Pose Estimation
+## 24. PnP 位姿估计
 
-Pose estimation uses the four detected image corners:
+位姿估计使用四个图像角点：
 
 ```text
 LT
@@ -846,59 +850,59 @@ RB
 LB
 ```
 
-and the four corresponding 3D marker-model points.
+以及与其一一对应的四个三维标志物模型点。
 
-The implementation first uses:
+程序首先使用：
 
 ```text
 SOLVEPNP_IPPE_SQUARE
 ```
 
-This method is designed specifically for planar square targets.
+这一方法专门适用于平面正方形目标。
 
-If that method fails, the program falls back to:
+如果该方法失败，则回退到：
 
 ```text
 SOLVEPNP_ITERATIVE
 ```
 
-The pose consists of:
+最终位姿由以下两部分组成：
 
 ```text
 rvec
 tvec
 ```
 
-where:
+其中：
 
-- `rvec` describes marker rotation relative to the camera;
-- `tvec` describes marker translation relative to the camera.
+- `rvec` 表示标志物相对于相机的旋转；
+- `tvec` 表示标志物相对于相机的平移。
 
 ---
 
-## 25. Pose Visualization
+## 25. 位姿可视化
 
-The estimated marker coordinate axes are projected back into the image using OpenCV `projectPoints`.
+估计出的标志物坐标轴使用 OpenCV `projectPoints` 投影回图像。
 
-The program displays:
-
-```text
-X axis
-Y axis
-Z axis
-```
-
-together with:
+程序显示：
 
 ```text
-X translation
-Y translation
-Z translation
-camera-to-marker distance
-reprojection error
+X 轴
+Y 轴
+Z 轴
 ```
 
-The distance is calculated using the Euclidean norm:
+同时显示：
+
+```text
+X 方向平移量
+Y 方向平移量
+Z 方向平移量
+相机到标志物距离
+重投影误差
+```
+
+距离使用欧氏范数计算：
 
 ```text
 distance = sqrt(X^2 + Y^2 + Z^2)
@@ -906,9 +910,9 @@ distance = sqrt(X^2 + Y^2 + Z^2)
 
 ---
 
-## 26. Example Pose Result
+## 26. 位姿结果示例
 
-One successfully detected frame produced approximately:
+某一帧成功检测后的位姿结果约为：
 
 ```text
 X = 0.076 m
@@ -918,11 +922,11 @@ Distance = 0.811 m
 Reprojection error = 0.71 px
 ```
 
-The values are physically reasonable for a marker located mainly in front of the camera with a small horizontal and vertical offset.
+对于一个主要位于相机前方、同时具有少量水平和垂直偏移的标志物而言，这组数值在物理意义上是合理的。
 
-This is an example result from one frame and is not intended to represent a constant error value for the complete video.
+这里只展示单帧示例，并不代表整段视频中误差始终保持不变。
 
-An example visualization is provided in:
+示例截图位于：
 
 ```text
 pose_example.png
@@ -930,23 +934,31 @@ pose_example.png
 
 ---
 
-## 27. Result Material
+## 27. 结果材料
 
-The submission includes a short continuous detection result:
+提交中包含一段连续标志物检测结果视频：
 
 ```text
 result_demo.avi
 ```
 
-This video demonstrates marker detection over continuous frames.
+该视频用于展示连续帧中的标志物检测效果。
 
-The calibration result is stored in:
+同时包含一段连续位姿估计结果视频：
+
+```text
+pose_demo.avi
+```
+
+该视频用于展示标志物位姿、坐标轴、距离和重投影误差的连续结果。
+
+相机标定结果保存在：
 
 ```text
 calibration.yaml
 ```
 
-A pose-estimation visualization is stored in:
+位姿估计示例截图位于：
 
 ```text
 pose_example.png
@@ -954,36 +966,36 @@ pose_example.png
 
 ---
 
-## 28. Final Summary
+## 28. 总结
 
-The final system uses only traditional computer vision and OpenCV.
+最终系统只使用传统计算机视觉方法和 OpenCV。
 
-The main recognition strategy is based on:
+主要识别策略可以概括为：
 
 ```text
-bright-region extraction
+亮区提取
 +
-marker-specific L-shape geometry
+标志物特有的 L 形几何
 +
-three-L spatial layout
+三 L 空间布局
 +
-special upper-right pattern
+右上特殊图案
 +
-perspective-normalized verification
+透视归一化验证
 +
-outer-edge refinement
+外边缘精修
 +
-temporal consistency
+时序一致性
 ```
 
-Compared with generic contour detection or simple bright-region grouping, the final method makes stronger use of the known marker structure.
+相比通用轮廓检测或简单亮区分组，最终方法更充分地利用了已知标志物自身的结构信息。
 
-The completed system provides:
+最终系统实现了：
 
-- continuous marker detection;
-- correct `DETECTED` / `NOT DETECTED` state;
-- marker outer-region localization;
-- ordered `LT`, `RT`, `RB`, `LB` corners;
-- temporal stabilization;
-- camera calibration;
-- optional square-marker PnP pose estimation.
+- 连续标志物检测；
+- 正确的 `DETECTED` / `NOT DETECTED` 状态；
+- 标志物外部区域定位；
+- 按 `LT`、`RT`、`RB`、`LB` 排序的四个角点；
+- 时序稳定处理；
+- 相机标定；
+- 基于正方形标志物模型的 PnP 位姿估计。
