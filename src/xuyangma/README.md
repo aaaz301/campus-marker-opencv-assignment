@@ -1,118 +1,118 @@
-# Campus Marker Recognition
+# 校内赛标志物识别
 
-## Overview
+## 项目概述
 
-This project implements campus competition marker recognition using traditional computer vision and OpenCV in C++.
+本项目使用 C++、OpenCV 和传统计算机视觉方法实现校内赛标志物识别。
 
-The program supports:
+程序支持：
 
-- continuous video-frame marker detection;
-- marker existence detection;
-- marker outer-boundary localization;
-- four ordered corner points: `LT`, `RT`, `RB`, `LB`;
-- temporal consistency and corner smoothing;
-- correct `NOT DETECTED` output when no reliable marker exists;
-- camera calibration using a symmetric circle grid;
-- optional marker pose estimation using PnP.
+- 连续视频帧中的标志物检测；
+- 判断当前帧中是否存在标志物；
+- 标志物外边界定位；
+- 按 `LT`、`RT`、`RB`、`LB` 顺序输出四个角点；
+- 跨帧一致性检查与角点平滑；
+- 当不存在可靠目标时正确输出 `NOT DETECTED`；
+- 使用对称圆点阵列完成相机标定；
+- 使用 PnP 完成标志物位姿估计。
 
-No deep learning model or online recognition service is used.
+整个流程不使用深度学习模型，也不依赖在线识别服务。
 
-## Environment
+## 运行环境
 
-The implementation was tested in the following Linux environment:
+本项目在以下 Linux 环境中完成测试：
 
-- OS: Ubuntu 24.04.4 LTS
-- Compiler: GCC 13.3.0
-- C++ standard: C++17
-- CMake: 3.28.3
-- OpenCV: 4.6.0
+- 操作系统：Ubuntu 24.04.4 LTS
+- 编译器：GCC 13.3.0
+- C++ 标准：C++17
+- CMake：3.28.3
+- OpenCV：4.6.0
 
-## Dependencies
+## 依赖安装
 
-Install the required packages on Ubuntu:
+在 Ubuntu 中安装所需依赖：
 
 ```bash
 sudo apt update
 sudo apt install build-essential cmake libopencv-dev
 ```
 
-The installed OpenCV version can be checked with:
+可通过以下命令检查 OpenCV 版本：
 
 ```bash
 pkg-config --modversion opencv4
 ```
 
-## Build
+## 编译
 
-Run the following commands from the repository root:
+在仓库根目录执行：
 
 ```bash
 cmake -S src/xuyangma -B build/xuyangma -DCMAKE_BUILD_TYPE=Release
 cmake --build build/xuyangma --parallel
 ```
 
-The executable will be generated at:
+生成的可执行文件位于：
 
 ```text
 build/xuyangma/marker_detector
 ```
 
-## Marker Detection
+## 标志物检测
 
-Run marker detection on the provided video:
+使用仓库提供的视频运行检测：
 
 ```bash
 ./build/xuyangma/marker_detector data/raw/marker_video.avi
 ```
 
-To save the processed video:
+如需保存处理后的视频：
 
 ```bash
 ./build/xuyangma/marker_detector data/raw/marker_video.avi output.avi
 ```
 
-When the marker is detected, the program displays:
+检测到标志物时，程序会显示：
 
-- the marker outer boundary;
-- four corner points;
-- the corner labels `LT`, `RT`, `RB`, `LB`;
-- `DETECTED`.
+- 标志物外边界；
+- 四个角点；
+- 角点标签 `LT`、`RT`、`RB`、`LB`；
+- `DETECTED` 状态。
 
-When no reliable marker is found, the program displays:
+没有检测到可靠标志物时，程序显示：
 
 ```text
 NOT DETECTED
 ```
 
-The previous detection is not indefinitely reused after the marker disappears.
+当标志物离开画面后，程序不会无限沿用上一帧的检测结果。
 
-Press `q` or `Esc` to stop playback.
+按 `q` 或 `Esc` 可停止播放。
 
-## Camera Input
+## 摄像头输入
 
-The detector also supports camera input:
+检测器同时支持摄像头输入：
 
 ```bash
 ./build/xuyangma/marker_detector camera
 ```
 
-or:
+或：
 
 ```bash
 ./build/xuyangma/marker_detector 0
 ```
 
-## Camera Calibration
+## 相机标定
 
-The provided calibration target is a `7 x 7` symmetric circles grid.
+提供的标定板为 `7 x 7` 对称圆点阵列。
 
-The center-to-center spacing between adjacent circles is:
+相邻圆心之间的实际距离为：
 
 ```text
 0.03 m
 ```
 
-Run calibration with:
+执行标定：
 
 ```bash
 ./build/xuyangma/marker_detector \
@@ -122,40 +122,40 @@ data/raw/calibration_video.avi \
 src/xuyangma/calibration.yaml
 ```
 
-The calibration program outputs:
+标定程序会输出：
 
-- camera intrinsic matrix;
-- distortion coefficients;
-- calibration RMS error;
-- mean reprojection error;
-- accepted calibration frame indices.
+- 相机内参矩阵；
+- 畸变系数；
+- 标定 RMS 误差；
+- 平均重投影误差；
+- 实际采用的标定帧编号。
 
-The current calibration result uses:
+当前标定结果为：
 
 ```text
-Image resolution: 1440 x 1080
-Accepted frames: 30
-RMS error: 0.06222580695747921
-Mean reprojection error: 0.06089088451195195 px
+图像分辨率：1440 x 1080
+有效帧数：30
+RMS 误差：0.06222580695747921
+平均重投影误差：0.06089088451195195 px
 ```
 
-The calibration result is stored in:
+标定结果保存在：
 
 ```text
 src/xuyangma/calibration.yaml
 ```
 
-## Pose Estimation
+## 位姿估计
 
-Pose estimation uses the detected marker corners together with the calibrated camera parameters.
+位姿估计使用检测得到的标志物四个角点和相机标定参数。
 
-For the current experiment, the marker outer size is treated as:
+在当前实验中，将标志物外边长按以下尺寸处理：
 
 ```text
 0.08 m
 ```
 
-Run pose estimation with:
+运行位姿估计：
 
 ```bash
 ./build/xuyangma/marker_detector \
@@ -165,20 +165,20 @@ src/xuyangma/calibration.yaml \
 0.08
 ```
 
-The pose mode displays:
+位姿模式会显示：
 
-- X translation;
-- Y translation;
-- Z translation;
-- camera-to-marker distance;
-- XYZ coordinate axes;
-- reprojection error.
+- X 方向平移量；
+- Y 方向平移量；
+- Z 方向平移量；
+- 相机到标志物的距离；
+- XYZ 三个坐标轴；
+- 重投影误差。
 
-Translation and distance values are reported in meters.
+平移量和距离的单位均为米。
 
-## Project Files
+## 项目文件
 
-The submission directory contains:
+提交目录包含：
 
 ```text
 src/xuyangma/
@@ -192,13 +192,16 @@ src/xuyangma/
 ├── REPORT.md
 ├── calibration.yaml
 ├── result_demo.avi
+├── pose_demo.avi
 └── pose_example.png
 ```
 
-`result_demo.avi` contains a short continuous marker-detection example.
+`result_demo.avi`：连续帧标志物识别结果视频。
 
-`pose_example.png` shows an example pose-estimation result.
+`pose_demo.avi`：连续帧位姿估计结果视频。
 
-`calibration.yaml` stores the camera calibration parameters.
+`pose_example.png`：位姿估计结果示例截图。
 
-More details about the algorithm, parameter choices, failure cases, calibration and pose estimation are provided in `REPORT.md`.
+`calibration.yaml`：相机标定参数。
+
+算法流程、参数选择、失败情况、相机标定和位姿估计的详细说明见 `REPORT.md`。
