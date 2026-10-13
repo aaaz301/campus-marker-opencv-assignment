@@ -21,6 +21,14 @@ results/
 *.mp4
 *.mkv
 
+# 自己加的规则
+build-*/
+*.o
+*.avi
+__pycache__/
+*.pyc
+src/tushenghao/tools/synth_ref/runs/
+new-runs/
 build/
 output/
 *.avi
