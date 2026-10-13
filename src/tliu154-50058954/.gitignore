@@ -1,0 +1,24 @@
+# Build directories
+/build/
+/cmake-build-*/
+/out/
+
+# IDE
+.vscode/settings.json.bak
+.idea/
+
+# Generated outputs
+data/output/
+*.jpg
+*.png
+*.mp4
+*.avi
+!data/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
