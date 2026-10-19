@@ -1,0 +1,156 @@
+record_schema_version: 1
+submitted: "1676"
+selected: "1676"
+exported: "1676"
+failed: false
+incomplete: false
+wall_us: 27619180.879000001
+run_export_us: 3217819.253
+fingerprint_algorithm: FNV1a64
+fingerprint_version: 1
+result_fingerprint: "834c269015109eb9"
+fingerprint_frames: "1676"
+stages:
+  capture:
+    N: "1676"
+    mean_us: 882.31988842482099
+    median_us: 814.66549999999995
+    p95_us: 1164.3040000000001
+    p99_us: 1332.4300000000001
+    max_us: 66754.729999999996
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 66754.729999999996
+  preprocess:
+    N: "1676"
+    mean_us: 473.31022553699285
+    median_us: 459.58049999999997
+    p95_us: 595.98900000000003
+    p99_us: 707.33399999999995
+    max_us: 6839.3289999999997
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 4044.3899999999999
+  detect:
+    N: "1676"
+    mean_us: 710.53321121718375
+    median_us: 626.98800000000006
+    p95_us: 1129.277
+    p99_us: 3597.6759999999999
+    max_us: 9046.5730000000003
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 2253.4960000000001
+  decode:
+    N: "1676"
+    mean_us: 6005.8576939140812
+    median_us: 6833.3540000000003
+    p95_us: 14027.611999999999
+    p99_us: 17954.540000000001
+    max_us: 24273.442999999999
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 6765.375
+  stabilize:
+    N: "1676"
+    mean_us: 6.0831634844868727
+    median_us: 6.0374999999999996
+    p95_us: 8.6959999999999997
+    p99_us: 18.120999999999999
+    max_us: 67.051000000000002
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 6.0309999999999997
+  process_total:
+    N: "1676"
+    mean_us: 7208.198093675418
+    median_us: 8026.2155000000002
+    p95_us: 15551.572
+    p99_us: 19659.442999999999
+    max_us: 25576.571
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 13129.728999999999
+  visualize:
+    N: "1676"
+    mean_us: 445.51163305489257
+    median_us: 415.91750000000002
+    p95_us: 665.84400000000005
+    p99_us: 812.80499999999995
+    max_us: 2128.9119999999998
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 2128.9119999999998
+  wait:
+    N: "0"
+    mean_us: null
+    median_us: null
+    p95_us: null
+    p99_us: null
+    max_us: null
+    statuses:
+      MEASURED: "0"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "1676"
+    first_frame_us: null
+  export:
+    N: "1676"
+    mean_us: 6005.2028645584724
+    median_us: 5977.2640000000001
+    p95_us: 6583.5540000000001
+    p99_us: 7347.9459999999999
+    max_us: 10923.727999999999
+    statuses:
+      MEASURED: "1676"
+      DISABLED: "0"
+      SKIPPED: "0"
+      NOT_IMPLEMENTED: "0"
+      NOT_EXECUTED: "0"
+    first_frame_us: 9935.3829999999998
+bookkeeping_us: 4485.8050000000003
+diagnostics_construct_intervals:
+  N: "1676"
+  mean_us: 6.6183090692124109
+  p95_us: 10.528
+framework_overhead:
+  N: "1676"
+  mean_us: 12.413799522673031
+  p95_us: 19.109000000000002
+result_status_counts:
+  "2": "588"
+  "3": "1088"
+reason_counts:
+  "HistoryExpired": "6"
+  "OtherRecordedReason": "14636"
+  "SemanticRejected": "588"
+  "SmoothingRejected": "836"

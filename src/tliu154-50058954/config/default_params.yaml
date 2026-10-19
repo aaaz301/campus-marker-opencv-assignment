@@ -1,0 +1,39 @@
+# 装甲板识别默认参数
+# 修改后无需重新编译，运行时通过命令行传入此文件路径即可。
+
+# HSV 阈值（OpenCV hue 范围为 0-179）
+red_hue_low_min: 0
+red_hue_low_max: 20
+red_hue_high_min: 160
+red_hue_high_max: 179
+blue_hue_min: 100
+blue_hue_max: 140
+saturation_min: 80
+value_min: 80
+
+# 形态学
+# 视频帧中灯条容易断裂，适当增大核可以把碎片连成完整灯条。
+morph_kernel_size: 5
+morph_iterations: 1
+fill_holes: true  # 填充过曝灯条形成的"甜甜圈"空洞
+
+# 灯条筛选
+# 视频分辨率/距离不同，灯条可能比测试图小很多；min_area 建议从 5 开始试。
+min_light_bar_area: 10.0    # 视频里真灯条可能只有 10~20 像素
+max_light_bar_area: 5000.0
+min_light_bar_ratio: 2.5    # 细长条 ratio 至少 2.5，自然过滤小方块
+max_light_bar_ratio: 100.0 # 真实细长灯条 ratio 可达 50~100
+max_light_bar_angle: 30.0 # 相对竖直方向的最大偏离角；竖直条为 0°，水平条为 90°
+
+# 装甲板配对
+# 视频场景中可能出现多目标/斜向装甲板，y 差限制需要放宽。
+max_bar_height_diff_ratio: 3.0 # 中心 y 差值不超过平均灯条高度的 3 倍
+max_bar_angle_diff: 30.0
+min_armor_aspect_ratio: 0.2
+max_armor_aspect_ratio: 6.0
+max_armor_vertical_angle: 30.0
+
+# 调试
+save_images: true
+# 支持绝对路径或相对路径。相对路径以 YAML 文件所在目录为基准。
+output_dir: "data/output"

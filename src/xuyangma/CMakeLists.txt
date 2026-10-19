@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(campus_marker_detector)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(OpenCV REQUIRED)
+add_executable(marker_detector main.cpp detector.cpp calibration.cpp)
+target_include_directories(marker_detector PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(marker_detector PRIVATE ${OpenCV_LIBS})
